@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五年级华文第八课《雨后的线索》互动练习</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        body { font-family: 'Noto Sans SC', sans-serif; background-color: #f0f9ff; }
+        .option-btn { transition: all 0.2s ease-in-out; }
+        .option-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .correct { background-color: #d1fae5; border-color: #10b981; color: #065f46; }
+        .incorrect { background-color: #fee2e2; border-color: #ef4444; color: #991b1b; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div id="app" class="bg-white rounded-2xl shadow-xl p-6 md:p-10 w-full max-w-3xl relative">
+        <div id="start-screen" class="text-center py-10">
+            <div class="text-6xl mb-6">🔍</div>
+            <h1 class="text-3xl md:text-4xl font-bold text-blue-700 mb-4">雨后的线索</h1>
+            <p class="text-gray-600 mb-8 text-lg">五年级华文第八课 综合能力挑战（15题）</p>
+            <button onclick="startQuiz()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full text-xl shadow-lg transform transition hover:scale-105">
+                开始侦探任务
+            </button>
+        </div>
+
+        <div id="quiz-screen" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <span class="text-sm font-semibold text-blue-600 bg-blue-50 py-1 px-3 rounded-full" id="progress-text">进度: 1 / 15</span>
+                <span class="text-sm font-semibold text-amber-600 bg-amber-50 py-1 px-3 rounded-full" id="score-text">得分: 0</span>
+            </div>
+            <h2 id="question-text" class="text-xl md:text-2xl font-bold text-gray-800 mb-6 leading-relaxed">题目加载中...</h2>
+            <div id="options-container" class="space-y-3 mb-6"></div>
+            
+            <div id="feedback-container" class="hidden p-4 rounded-lg mb-6 border">
+                <p id="feedback-text" class="font-bold mb-1"></p>
+                <p id="rationale-text" class="text-sm text-gray-700 leading-relaxed italic"></p>
+            </div>
+
+            <div class="flex justify-between items-center">
+                <button id="hint-btn" onclick="showHint()" class="text-blue-500 hover:text-blue-700 text-sm font-medium underline">💡 查看线索提示</button>
+                <button id="next-btn" onclick="nextQuestion()" class="hidden bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg shadow-md">下一题 ➡️</button>
+            </div>
+        </div>
+
+        <div id="result-screen" class="hidden text-center py-10">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">侦探任务完成！ 🏆</h2>
+            <div id="result-evaluation" class="text-xl text-blue-600 mb-6 font-bold"></div>
+            <p class="text-2xl mb-8">总得分： <span id="final-score" class="text-5xl text-amber-500">0</span> / 100</p>
+            <button onclick="location.reload()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-10 rounded-full">🔄 重新挑战</button>
+        </div>
+    </div>
+
+    <div id="custom-hint-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl transform transition-all">
+            <div class="text-3xl mb-2">💡</div>
+            <h4 class="text-lg font-bold text-blue-700 mb-2">侦探小贴士</h4>
+            <p id="custom-hint-text" class="text-gray-600 text-sm mb-6 leading-relaxed"></p>
+            <button onclick="closeHint()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">我知道了</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                "question": "校工虎伯为什么在科学园发脾气？",
+                "options": [
+                    { "text": "因为他辛辛苦苦盼到盛开的百日菊经常被人摘走。", "rationale": "正确！虎伯抱怨花儿“三天两头遭人摘走”，所以脸色发青。", "isCorrect": true },
+                    { "text": "因为他不喜欢在下雨天清扫落叶。", "rationale": "错误。文中提到他扫把沾泥是因为心情烦躁。", "isCorrect": false },
+                    { "text": "因为爱丽丝在科学园里乱跑。", "rationale": "错误。爱丽丝只是路过。", "isCorrect": false }
+                ],
+                "hint": "注意课文第54页，虎伯手里拿着扫把时说的话。"
+            },
+            {
+                "question": "根据课文第2自然段，爱丽丝是一个怎样的女孩？",
+                "options": [
+                    { "text": "观察敏锐，喜欢推卸责任。", "rationale": "错误。她并没有推卸责任。", "isCorrect": false },
+                    { "text": "充满好奇心，积极主动解决问题。", "rationale": "正确！她不仅毛遂自荐，还主动组建了特工队。", "isCorrect": true },
+                    { "text": "胆小怕事，不敢靠近虎伯。", "rationale": "错误。她停下脚步主动询问虎伯。", "isCorrect": false }
+                ],
+                "hint": "她“毛遂自荐”和“力邀”同学的行为说明了什么？"
+            },
+            {
+                "question": "“捉贼特工队”为什么去找被称为“福尔摩斯”的白奶奶？",
+                "options": [
+                    { "text": "因为他们调查了一周毫无收获，士气低落。", "rationale": "正确！文中形容他们像“泄了气的皮球”，丧失了动力。", "isCorrect": true },
+                    { "text": "因为奶奶手里有偷花贼的照片。", "rationale": "错误。奶奶是通过观察和推理来帮忙的。", "isCorrect": false }
+                ],
+                "hint": "看课文第55页，他们调查一周后的结果是什么？"
+            },
+            {
+                "question": "下列哪组词语的读音是完全正确的？",
+                "options": [
+                    { "text": "敏锐 (mǐn ruì) 、花苞 (bāo)", "rationale": "正确！符合课文第59页读读写写的标注。", "isCorrect": true },
+                    { "text": "错综 (cuò zhōng) 、沾满 (zhàn)", "rationale": "错误。综是平舌zōng，沾是第一声zhān。", "isCorrect": false }
+                ],
+                "hint": "参考课后生字表，注意平翘舌音和声调。"
+            },
+            {
+                "question": "选出最适合填入括号的关联词：好不容易盼到花开，(  )三天两头遭人摘走。",
+                "options": [
+                    { "text": "却", "rationale": "正确！表示转折关系，强调遗憾的心情。", "isCorrect": true },
+                    { "text": "就", "rationale": "错误。这里不是顺接关系。", "isCorrect": false }
+                ],
+                "hint": "前后的事情是相反的：开花（好事）vs 被摘（坏事）。"
+            },
+            {
+                "question": "文中的省略号“偷花贼必定在这附近留下……”起到了什么作用？",
+                "options": [
+                    { "text": "表示语意未尽，引导对方接话。", "rationale": "正确！白奶奶停顿后，日蒙接出了“蛛丝马迹”。", "isCorrect": true },
+                    { "text": "表示声音的延长。", "rationale": "错误。这里是对话的停顿。", "isCorrect": false }
+                ],
+                "hint": "看第56页边注：省略号在这里表示话未说完。"
+            },
+            {
+                "question": "为什么说“雨后”是查明真相的关键时机？",
+                "options": [
+                    { "text": "因为下雨会让偷花贼感冒。 ", "rationale": "错误。这与破案无关。", "isCorrect": false },
+                    { "text": "因为雨水让泥地变软，走过时会留下明显的痕迹。", "rationale": "正确！白奶奶利用脚印和泥迹进行追踪。", "isCorrect": true }
+                ],
+                "hint": "白奶奶说：“凡走过必留下痕迹”，雨天留下的痕迹最明显。"
+            },
+            {
+                "question": "白奶奶看到走廊上的鞋印，就能判断出是宗翔留下的，这说明她：",
+                "options": [
+                    { "text": "观察敏锐，逻辑严密。", "rationale": "正确！她能通过脚印的方向和新旧判断出是谁踩的。", "isCorrect": true },
+                    { "text": "喜欢随便怀疑学生。", "rationale": "错误。她的推断是有事实根据的。", "isCorrect": false }
+                ],
+                "hint": "这种能力通常是侦探具备的素质。"
+            },
+            {
+                "question": "经过追踪，发现真正的“偷花贼”是：",
+                "options": [
+                    { "text": "老人家养的几只猫儿。", "rationale": "正确！老人家最后说“你这个小东西竟敢偷吃花”，真相大白。", "isCorrect": true },
+                    { "text": "那个打哈欠的老人家。", "rationale": "错误。老人家只是猫的主人。", "isCorrect": false }
+                ],
+                "hint": "看第58页，老人家脚边的小东西是谁？"
+            },
+            {
+                "question": "句子中“啧啧啧，你这个小东西”的“啧啧啧”属于：",
+                "options": [
+                    { "text": "摹声词（模拟声音）。", "rationale": "正确！看课本第58页边注，这是模拟嘴巴发出的声音。", "isCorrect": true },
+                    { "text": "关联词。", "rationale": "错误。它不是连接句子的词。", "isCorrect": false }
+                ],
+                "hint": "这是用来模仿说话时发出的感叹声。"
+            },
+            {
+                "question": "“趿拉着人字拖”中，“趿”的拼音是：",
+                "options": [
+                    { "text": "tā", "rationale": "正确！读第一声，表示拖着鞋子走。", "isCorrect": true },
+                    { "text": "jí", "rationale": "错误。这是误读字音。", "isCorrect": false }
+                ],
+                "hint": "参考第57页，课文中已经有标注拼音。"
+            },
+            {
+                "question": "下列词语字形完全正确的一组是：",
+                "options": [
+                    { "text": "零星的花瓣、凹凸不平", "rationale": "正确！“瓣”中间是“瓜”，“凹凸”写法正确。", "isCorrect": true },
+                    { "text": "零星的花辨、凹凸不平", "rationale": "错误。“辨”是分辨的意思，不是花瓣。", "isCorrect": false }
+                ],
+                "hint": "注意“瓣”字中间的部首。"
+            },
+            {
+                "question": "当真相大白后，老人家不再介怀爱丽丝的指责，这说明老人家：",
+                "options": [
+                    { "text": "为人豁达，不计较小辈的过失。", "rationale": "正确！虽然被冤枉，但弄清真相后他表现得很包容。", "isCorrect": true },
+                    { "text": "年纪大了，记性不好。", "rationale": "错误。这不是课文要表达的含义。", "isCorrect": false }
+                ],
+                "hint": "这体现了一种长辈的宽容品德。"
+            },
+            {
+                "question": "本课的“课后精华”告诉我们：",
+                "options": [
+                    { "text": "好奇心能激发求知欲，促使热爱学习。", "rationale": "正确！这是第58页原文给出的启示。", "isCorrect": true },
+                    { "text": "下雨天不要在外面乱跑。", "rationale": "错误。这是安全提示，不是本课主旨。", "isCorrect": false }
+                ],
+                "hint": "看课文最后一段那个画框里的文字。"
+            },
+            {
+                "question": "“凡走过必留下痕迹”在生活中的感悟是：",
+                "options": [
+                    { "text": "只要细心观察，就能从琐碎中发现真相。", "rationale": "正确！它鼓励我们要有探究精神和细致的观察力。", "isCorrect": true },
+                    { "text": "下雨天走泥地要小心。", "rationale": "错误。这只是字面上的浅层意思。", "isCorrect": false }
+                ],
+                "hint": "这是白奶奶传授给孩子们的“侦探哲学”。"
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let isAnswered = false;
+
+        function startQuiz() {
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('hidden');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            isAnswered = false;
+            const q = quizData[currentQuestionIndex];
+            document.getElementById('progress-text').innerText = `进度: ${currentQuestionIndex + 1} / ${quizData.length}`;
+            document.getElementById('score-text').innerText = `得分: ${score * 7}`;
+            document.getElementById('question-text').innerText = q.question;
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            document.getElementById('feedback-container').classList.add('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+            document.getElementById('hint-btn').classList.remove('hidden');
+
+            q.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn w-full text-left p-4 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-700 font-medium';
+                btn.innerText = opt.text;
+                btn.onclick = () => selectAnswer(i, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function selectAnswer(idx, btn) {
+            if (isAnswered) return;
+            isAnswered = true;
+            const q = quizData[currentQuestionIndex];
+            const correct = q.options[idx].isCorrect;
+            const btns = document.getElementById('options-container').children;
+            
+            for (let i = 0; i < btns.length; i++) {
+                btns[i].disabled = true;
+                if (q.options[i].isCorrect) {
+                    btns[i].classList.add('correct');
+                    btns[i].classList.remove('border-gray-200');
+                } else if (i === idx) {
+                    btns[i].classList.add('incorrect');
+                    btns[i].classList.remove('border-gray-200');
+                }
+            }
+
+            if (correct) score++;
+            
+            document.getElementById('feedback-container').classList.remove('hidden');
+            document.getElementById('feedback-container').className = `p-4 rounded-lg mb-6 border ${correct ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`;
+            document.getElementById('feedback-text').innerText = correct ? "✅ 观察入微！" : "❌ 哎呀，看漏了细节";
+            document.getElementById('feedback-text').className = `font-bold mb-1 ${correct ? 'text-green-700' : 'text-red-700'}`;
+            document.getElementById('rationale-text').innerText = q.options[idx].rationale;
+            
+            document.getElementById('hint-btn').classList.add('hidden');
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        function showHint() {
+            document.getElementById('custom-hint-text').innerText = quizData[currentQuestionIndex].hint;
+            document.getElementById('custom-hint-modal').classList.remove('hidden');
+        }
+        function closeHint() { document.getElementById('custom-hint-modal').classList.add('hidden'); }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                loadQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        function showResult() {
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+            const finalScore = Math.round((score / quizData.length) * 100);
+            document.getElementById('final-score').innerText = finalScore;
+            
+            let eval = "";
+            if(finalScore >= 90) eval = "超级侦探：真相在你面前无所遁形！";
+            else if(finalScore >= 70) eval = "优秀警员：你的观察力非常出色！";
+            else if(finalScore >= 50) eval = "见习探员：再细心一点，你会更棒！";
+            else eval = "继续努力：多回学校科学园转转吧！";
+            document.getElementById('result-evaluation').innerText = eval;
+        }
+    </script>
+</body>
+</html>
